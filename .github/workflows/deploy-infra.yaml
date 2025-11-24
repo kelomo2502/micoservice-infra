@@ -1,0 +1,100 @@
+name: Deploy micoservice-infra
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'micoservice-infra/**'
+
+permissions:
+  contents: read
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: us-east-1
+
+jobs:
+  # -----------------------------------------------
+  # 1. Deploy Development
+  # -----------------------------------------------
+  deploy-dev:
+    name: Deploy Dev
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./micoservice-infra/environments/dev
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+  # -----------------------------------------------
+  # 2. Deploy Staging (Runs only if Dev succeeds)
+  # -----------------------------------------------
+  deploy-staging:
+    name: Deploy Staging
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./micoservice-infra/environments/staging
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+  # -----------------------------------------------
+  # 3. Deploy Production (Manual Gate)
+  # -----------------------------------------------
+  deploy-prod:
+    name: Deploy Production
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    # This connects to a GitHub "Environment" called 'production'
+    # You must configure the 'Required Reviewers' in GitHub Settings for this to pause.
+    environment: production 
+    defaults:
+      run:
+        working-directory: ./micoservice-infra/environments/prod
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
