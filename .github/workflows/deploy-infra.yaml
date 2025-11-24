@@ -1,13 +1,15 @@
-name: Deploy micoservice-infra
+name: Deploy Infrastructure
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'micoservice-infra/**'
+      - 'environments/**'
+      - 'modules/**'
 
 permissions:
+  id-token: write
   contents: read
 
 env:
@@ -24,7 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./micoservice-infra/environments/dev
+        # CORRECTION: Removed 'micoservice-infra/'
+        working-directory: ./environments/dev
     
     steps:
       - name: Checkout Code
@@ -45,7 +48,7 @@ jobs:
         run: terraform apply -auto-approve
 
   # -----------------------------------------------
-  # 2. Deploy Staging (Runs only if Dev succeeds)
+  # 2. Deploy Staging
   # -----------------------------------------------
   deploy-staging:
     name: Deploy Staging
@@ -53,7 +56,8 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./micoservice-infra/environments/staging
+        # CORRECTION: Removed 'micoservice-infra/'
+        working-directory: ./environments/staging
     
     steps:
       - name: Checkout Code
@@ -71,18 +75,17 @@ jobs:
         run: terraform apply -auto-approve
 
   # -----------------------------------------------
-  # 3. Deploy Production (Manual Gate)
+  # 3. Deploy Production
   # -----------------------------------------------
   deploy-prod:
     name: Deploy Production
     needs: deploy-staging
     runs-on: ubuntu-latest
-    # This connects to a GitHub "Environment" called 'production'
-    # You must configure the 'Required Reviewers' in GitHub Settings for this to pause.
     environment: production 
     defaults:
       run:
-        working-directory: ./micoservice-infra/environments/prod
+        # CORRECTION: Removed 'micoservice-infra/'
+        working-directory: ./environments/prod
     
     steps:
       - name: Checkout Code
